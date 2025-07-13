@@ -1,60 +1,56 @@
+// Grab DOM elements
 const chatForm = document.getElementById("chatForm");
-const chatWindow = document.getElementById("chatWindow");
 const userInput = document.getElementById("userInput");
+const chatWindow = document.getElementById("chatWindow");
 
-const WORKER_URL = "https://ai-chatbot.jkaur5.workers.dev/";
+// Greet the user on load
+appendMessage("ai", "👋 Hello! How can I help you today?");
 
-const messages = [
-  {
-    role: "system",
-    content:
-      "You are L’Oréal’s AI Beauty Assistant. You only answer questions about L’Oréal products, skincare, makeup, haircare, and beauty routines. Politely decline unrelated topics."
-  }
-];
+// Replace with your Cloudflare Worker endpoint
+const CLOUDFLARE_URL = "https://ai-chatbot.jkaur5.workers.dev/";
 
-function appendMessage(role, content) {
-  const msg = document.createElement("div");
-  msg.className = `msg ${role}`;
-  msg.textContent = content;
-  chatWindow.appendChild(msg);
-  chatWindow.scrollTop = chatWindow.scrollHeight;
-}
-
-function showTyping() {
-  const typing = document.createElement("div");
-  typing.className = "msg ai typing";
-  typing.innerHTML = `<span class="dot"></span><span class="dot"></span><span class="dot"></span>`;
-  chatWindow.appendChild(typing);
-  chatWindow.scrollTop = chatWindow.scrollHeight;
-  return typing;
-}
-
+// When the user submits a question
 chatForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
+  e.preventDefault(); // Prevent form refresh
+
   const input = userInput.value.trim();
   if (!input) return;
 
-  appendMessage("user", `You: ${input}`);
-  messages.push({ role: "user", content: input });
-  userInput.value = "";
+  appendMessage("user", input); // Show user message
+  userInput.value = ""; // Clear the field
 
-  const loading = showTyping();
+  const messages = [
+    {
+      role: "system",
+      content: "You are a helpful assistant that only answers questions about L’Oréal products, skincare, makeup, haircare, and routines. Kindly refuse off-topic questions."
+    },
+    {
+      role: "user",
+      content: input
+    }
+  ];
 
   try {
-    const res = await fetch(WORKER_URL, {
+    const response = await fetch(CLOUDFLARE_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages })
+      body: JSON.stringify({ messages: messages })
     });
 
-    const data = await res.json();
-    loading.remove();
-
-    const reply = data.choices?.[0]?.message?.content?.trim() || "Hmm, no reply.";
+    const data = await response.json();
+    const reply = data.choices?.[0]?.message?.content || "Sorry, I didn’t get that.";
     appendMessage("ai", reply);
-    messages.push({ role: "assistant", content: reply });
   } catch (err) {
-    loading.remove();
-    appendMessage("ai", "⚠️ There was an error. Please try again later.");
+    console.error("Error:", err);
+    appendMessage("ai", "⚠️ Oops! Something went wrong.");
   }
 });
+
+// Show messages in the chat window
+function appendMessage(role, text) {
+  const div = document.createElement("div");
+  div.classList.add("msg", role);
+  div.textContent = text;
+  chatWindow.appendChild(div);
+  chatWindow.scrollTop = chatWindow.scrollHeight;
+}
