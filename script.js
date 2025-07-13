@@ -1,16 +1,14 @@
-
 const chatForm = document.getElementById("chatForm");
-const userInput = document.getElementById("userInput");
 const chatWindow = document.getElementById("chatWindow");
+const userInput = document.getElementById("userInput");
 
-// Replace with your deployed Cloudflare Worker URL
-const WORKER_URL = "ttps://ai-chatbot.jkaur5.workers.dev/";
+const WORKER_URL = "https://ai-chatbot.jkaur5.workers.dev/";
 
 const messages = [
   {
     role: "system",
     content:
-      "You are L’Oréal’s AI Beauty Assistant. Only answer questions about L’Oréal products, beauty routines, skincare, makeup, haircare, fragrances, or beauty tips. Politely decline off-topic questions."
+      "You are L’Oréal’s AI Beauty Assistant. You only answer questions about L’Oréal products, skincare, makeup, haircare, and beauty routines. Politely decline unrelated topics."
   }
 ];
 
@@ -22,7 +20,7 @@ function appendMessage(role, content) {
   chatWindow.scrollTop = chatWindow.scrollHeight;
 }
 
-function showTypingDots() {
+function showTyping() {
   const typing = document.createElement("div");
   typing.className = "msg ai typing";
   typing.innerHTML = `<span class="dot"></span><span class="dot"></span><span class="dot"></span>`;
@@ -33,14 +31,14 @@ function showTypingDots() {
 
 chatForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const message = userInput.value.trim();
-  if (!message) return;
+  const input = userInput.value.trim();
+  if (!input) return;
 
-  appendMessage("user", message);
-  messages.push({ role: "user", content: message });
+  appendMessage("user", `You: ${input}`);
+  messages.push({ role: "user", content: input });
   userInput.value = "";
 
-  const typingDots = showTypingDots();
+  const loading = showTyping();
 
   try {
     const res = await fetch(WORKER_URL, {
@@ -50,13 +48,13 @@ chatForm.addEventListener("submit", async (e) => {
     });
 
     const data = await res.json();
-    typingDots.remove();
+    loading.remove();
 
-    const reply = data.choices?.[0]?.message?.content?.trim() || "No response.";
+    const reply = data.choices?.[0]?.message?.content?.trim() || "Hmm, no reply.";
     appendMessage("ai", reply);
     messages.push({ role: "assistant", content: reply });
   } catch (err) {
-    typingDots.remove();
-    appendMessage("ai", `⚠️ Error: ${err.message}`);
+    loading.remove();
+    appendMessage("ai", "⚠️ There was an error. Please try again later.");
   }
 });
